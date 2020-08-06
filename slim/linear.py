@@ -25,7 +25,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from butterfly import Butterfly
+from slim.butterfly import Butterfly
 
 
 class LinearBase(nn.Module, ABC):
