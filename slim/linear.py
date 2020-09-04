@@ -88,6 +88,7 @@ class SquareLinear(LinearBase, ABC):
 class Linear(LinearBase):
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
+        super.__init__(insize, outsize, bias=bias)
         self.linear = nn.Linear(insize, outsize, bias=bias)
 
     def effective_W(self):
@@ -345,7 +346,7 @@ class SVDLinear(LinearBase):
     Also a similar regularization on the factors:
     https://pdfs.semanticscholar.org/78b2/9eba4d6c836483c0aa67d637205e95223ae4.pdf
     """
-    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1, **kwargs):
+    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
         """
 
         soft SVD based regularization of matrix A
@@ -390,7 +391,7 @@ class SVDLinear(LinearBase):
 
 
 class SVDLinearLearnBounds(SVDLinear):
-    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1, **kwargs):
+    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
         """
 
         soft SVD based regularization of matrix A
@@ -403,8 +404,8 @@ class SVDLinearLearnBounds(SVDLinear):
         sigma_max = maximum allowed value of eigenvalues
         """
         super().__init__(insize, outsize, bias=bias, sigma_min=sigma_min, sigma_max=sigma_max)
-        self.sigma_min = nn.Parameter(self.sigma_min)
-        self.sigma_max = nn.Parameter(self.sigma_max)
+        self.sigma_min = nn.Parameter(torch.tensor(sigma_min))
+        self.sigma_max = nn.Parameter(torch.tensor(sigma_max))
 
 
 def Hprod(x, u, k):
@@ -580,6 +581,7 @@ maps = {'linear': Linear,
         'stable_split': StableSplitLinear,
         'spectral': SpectralLinear,
         'softSVD': SVDLinear,
+        'learnSVD': SVDLinearLearnBounds,
         'orthogonal': OrthogonalLinear,
         'psd': PSDLinear,
         'symplectic': SymplecticLinear,
