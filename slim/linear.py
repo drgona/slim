@@ -88,7 +88,6 @@ class SquareLinear(LinearBase, ABC):
 class Linear(LinearBase):
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
-        super.__init__(insize, outsize, bias=bias)
         self.linear = nn.Linear(insize, outsize, bias=bias)
 
     def effective_W(self):
