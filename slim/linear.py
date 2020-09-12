@@ -107,6 +107,12 @@ class IdentityInitLinear(Linear):
             torch.nn.init.zeros_(self.bias)
 
 
+class IdentityLinear(IdentityInitLinear):
+    def __init__(self, insize, outsize, bias=False, **kwargs):
+        super().__init__(insize, outsize, bias=bias)
+        self.linear.requires_grad_(False)
+
+
 class NonNegativeLinear(LinearBase):
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
@@ -585,7 +591,8 @@ maps = {'linear': Linear,
         'psd': PSDLinear,
         'symplectic': SymplecticLinear,
         'butterfly': ButterflyLinear,
-        'schur': SchurDecompositionLinear}
+        'schur': SchurDecompositionLinear,
+        'identity': IdentityLinear}
 
 
 if __name__ == '__main__':
