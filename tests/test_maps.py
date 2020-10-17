@@ -10,7 +10,7 @@ sparse_maps = [
 spectral_maps = [
     slim.PerronFrobeniusLinear,
     slim.SVDLinear,
-    slim.SVDLinearLearnBounds,
+    # slim.SVDLinearLearnBounds,    # TODO: this one's broken
     slim.SpectralLinear,
 ]
 
@@ -24,6 +24,17 @@ class SparseModel(slim.LinearBase):
 
     def effective_W(self):
         return self.weight.T
+
+# TODO: better test model for spectrally-constrained maps
+class SpectralModel(slim.LinearBase):
+    def __init__(self, input_dim=64, output_dim=64, sigma_min=0.0, sigma_max=1.0, ortho_gain=1.0):
+        super().__init__(input_dim, output_dim)
+        self.U = torch.nn.init.orthogonal_(torch.empty(input_dim, output_dim), gain=ortho_gain)
+        self.V = torch.nn.init.orthogonal_(torch.empty(input_dim, output_dim), gain=ortho_gain)
+        self.sigma = torch.diag((sigma_max - sigma_min) * torch.rand(input_dim) + sigma_min)
+
+    def effective_W(self):
+        return self.U.matmul(self.sigma).matmul(self.V)
 
 
 def generate_data(true_model, nsamples=20000, batch_size=2000):
@@ -39,7 +50,7 @@ def generate_data(true_model, nsamples=20000, batch_size=2000):
     return torch.cat(X, dim=0), torch.cat(y, dim=0)
 
 
-def train(X_true, y_true, model, optimizer, epochs=1000, batch_size=2000):
+def train(X_true, y_true, model, optimizer, epochs=500, batch_size=2000):
     nsamples = X_true.shape[0]
     for epoch in range(epochs):
         rand_inds = torch.randperm(nsamples)
@@ -54,7 +65,7 @@ def train(X_true, y_true, model, optimizer, epochs=1000, batch_size=2000):
             
             y_pred = model(X_batch)
 
-            loss = loss_fn(y_batch, y_pred) + model.reg_error()
+            loss = loss_fn(y_batch, y_pred) + 0.1 * model.reg_error()
 
             loss.backward()
             optimizer.step()
@@ -77,16 +88,12 @@ def evaluate(X_true, y_true, model, batch_size=2000):
 def weight_divergence(true_model, test_model):
     return torch.norm(true_model.effective_W() - test_model.effective_W(), p=1).item()
 
-
-if __name__ == '__main__':
-
-    # test sparsity-constrained maps
-    print('Testing sparse linear maps:')
-    true_model = SparseModel()
+def test_maps(maps, true_model):
     X, y = generate_data(true_model)
 
-    for layer in [*sparse_maps, slim.Linear]:
+    for layer in [*maps, slim.Linear]:
         print(f'  {layer.__name__}:')
+
         test_model = layer(64, 64)
         optimizer = torch.optim.AdamW(test_model.parameters(), lr=0.001)
 
@@ -96,5 +103,10 @@ if __name__ == '__main__':
 
         print(f'Loss = {loss:.4e}, Weight divergence = {wdiv:.4e}\n')
 
-    # TODO: test spectrally-constrained maps
+if __name__ == '__main__':
+    print('Testing sparse linear maps:')
+    test_maps(sparse_maps, SparseModel())
+
+    print('Testing spectrally-constrained linear maps:')
+    test_maps(spectral_maps, SpectralModel())
 
