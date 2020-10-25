@@ -54,6 +54,73 @@ class LinearBase(nn.Module, ABC):
         return torch.matmul(x, self.effective_W()) + self.bias
 
 
+class L0Linear(LinearBase):
+    """
+    TODO: This implementation may need to be adjusted as there is the same sampling for each input
+    TODO: in the minibatch which may inhibit convergence. Also, there will be a different sampling
+    TODO: for each call during training so it may cause issues included in a layer for a recurrent
+    TODO: computation (fx in state space model). Or maybe neither are issues. Need to try first.
+    Implementation of L0 regularization for the input units of a fully connected layer
+    Reference implementation: https://github.com/AMLab-Amsterdam/L0_regularization/blob/master/l0_layers.py
+    Paper: https://arxiv.org/pdf/1712.01312.pdf
+    """
+    def __init__(self, insize, outsize, bias=True, weight_decay=1.0,
+                 droprate_init=0.5, temperature=2./3., lamba=1.0, **kwargs):
+        """
+        :param insize: Input dimensionality
+        :param outsize: Output dimensionality
+        :param bias: Whether we use a bias
+        :param weight_decay: Strength of the L2 penalty
+        :param droprate_init: Dropout rate that the L0 gates will be initialized to
+        :param temperature: Temperature of the concrete distribution
+        :param lamba: Strength of the L0 penalty
+        """
+        super().__init__(insize, outsize, bias=bias)
+        self.in_features = insize
+        self.out_features = outsize
+        self.prior_prec = weight_decay
+        self.qz_loga = nn.Parameter(torch.Tensor(insize, outsize))
+        self.temperature = temperature
+        self.droprate_init = droprate_init if droprate_init != 0. else 0.5
+        self.lamba = lamba
+        self.limit_a, self.limit_b, self.epsilon = -.1, 1.1, 1e-6
+        self.floatTensor = torch.FloatTensor if not torch.cuda.is_available() else torch.cuda.FloatTensor
+        self.qz_loga.data.normal_(math.log(1 - self.droprate_init) - math.log(self.droprate_init), 1e-2)
+
+    def cdf_qz(self, x):
+        """Implements the CDF of the 'stretched' concrete distribution"""
+        xn = (x - self.limit_a) / (self.limit_b - self.limit_a)
+        logits = math.log(xn) - math.log(1 - xn)
+        return torch.sigmoid(logits * self.temperature - self.qz_loga).clamp(min=self.epsilon, max=1 - self.epsilon)
+
+    def quantile_concrete(self, x):
+        """Implements the quantile, aka inverse CDF, of the 'stretched' concrete distribution"""
+        y = torch.sigmoid((torch.log(x) - torch.log(1 - x) + self.qz_loga) / self.temperature)
+        return y * (self.limit_b - self.limit_a) + self.limit_a
+
+    def reg_error(self):
+        """Expected L0 norm under the stochastic gates, takes into account and re-weights also a potential L2 penalty"""
+        logpw_col = torch.sum(- (.5 * self.prior_prec * self.weights.pow(2)) - self.lamba, 1)
+        logpw = torch.sum((1 - self.cdf_qz(0)) * logpw_col)
+        logpb = 0 if not self.use_bias else - torch.sum(.5 * self.prior_prec * self.bias.pow(2))
+        return logpw + logpb
+
+    def get_eps(self, size):
+        """Uniform random numbers for the concrete distribution"""
+        eps = self.floatTensor(size).uniform_(self.epsilon, 1-self.epsilon)
+        eps = torch.autograd.Variable(eps)
+        return eps
+
+    def effective_W(self):
+        if self.training:
+            z = self.quantile_concrete(self.get_eps(self.floatTensor(self.in_features, self.out_features)))
+            mask = F.hardtanh(z, min_val=0, max_val=1)
+        else:
+            pi = F.sigmoid(self.qz_loga)
+            mask = F.hardtanh(pi * (self.limit_b - self.limit_a) + self.limit_a, min_val=0, max_val=1)
+        return mask * self.weight
+
+
 class ButterflyLinear(LinearBase):
     """
     Sparse structured linear maps from: https://github.com/HazyResearch/learning-circuits
@@ -573,7 +640,8 @@ class SymplecticLinear(SquareLinear):
 square_maps = {SymmetricLinear, SkewSymmetricLinear, DampedSkewSymmetricLinear, PSDLinear,
                OrthogonalLinear, SymplecticLinear, SchurDecompositionLinear}
 
-maps = {'linear': Linear,
+maps = {'l0': L0Linear,
+        'linear': Linear,
         'nneg': NonNegativeLinear,
         'lasso': LassoLinear,
         'lstochastic': LeftStochasticLinear,
