@@ -348,6 +348,23 @@ class SymmetricLinear(SquareLinear):
         return (self.weight + torch.t(self.weight)) / 2
 
 
+class SymmetricLinear(SquareLinear):
+    """
+    symmetric matrix A (effective_W) is a square matrix that is equal to its transpose.
+    A = A^T
+    https://en.wikipedia.org/wiki/Symmetric_matrix
+    """
+
+    def __init__(self, insize, outsize, bias=False, **kwargs):
+        super().__init__(insize, outsize, bias=bias)
+
+    def effective_W(self):
+        return (self.weight + torch.t(self.weight)) / 2
+
+
+
+
+
 class SkewSymmetricLinear(SquareLinear):
     """
     skew-symmetric (or antisymmetric) matrix A (effective_W) is a square matrix whose transpose equals its negative.
@@ -427,7 +444,7 @@ class SVDLinear(LinearBase):
         Sigma = diagonal matrix of singular values (square roots of eigenvalues)
         nu = number of columns
         nx = number of rows
-        sigma_min = minum allowed value of  eigenvalues
+        sigma_min = minimum allowed value of  eigenvalues
         sigma_max = maximum allowed value of eigenvalues
         """
         super().__init__(insize, outsize, bias=bias)
@@ -472,12 +489,29 @@ class SVDLinearLearnBounds(SVDLinear):
         Sigma = diagonal matrix of singular values (square roots of eigenvalues)
         nu = number of columns
         nx = number of rows
-        sigma_min = minum allowed value of  eigenvalues
+        sigma_min = minimum allowed value of  eigenvalues
         sigma_max = maximum allowed value of eigenvalues
         """
         super().__init__(insize, outsize, bias=bias, sigma_min=sigma_min, sigma_max=sigma_max)
         self.sigma_min = nn.Parameter(torch.tensor(sigma_min))
         self.sigma_max = nn.Parameter(torch.tensor(sigma_max))
+
+
+class SymmetricSVDLinear(SVDLinear):
+    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
+        """
+
+        soft SVD based regularization of matrix A
+        A = U*Sigma*V
+        U,V = unitary matrices (orthogonal for real matrices A)
+        Sigma = diagonal matrix of singular values (square roots of eigenvalues)
+        nu = number of columns
+        nx = number of rows
+        sigma_min = minimum allowed value of  eigenvalues
+        sigma_max = maximum allowed value of eigenvalues
+        """
+        super().__init__(insize, outsize, bias=bias, sigma_min=sigma_min, sigma_max=sigma_max)
+        self.U = self.V
 
 
 def Hprod(x, u, k):
@@ -619,6 +653,19 @@ class SpectralLinear(LinearBase):
         return x + self.bias
 
 
+class SymmetricSpectralLinear(SpectralLinear):
+    """
+    Translated from tensorflow code: https://github.com/zhangjiong724/spectral-RNN/blob/master/code/spectral_rnn.py
+    SVD paramaterized linear map of form U\SigmaV. Singular values can be constrained to a range
+    """
+
+    def __init__(self, insize, outsize, bias=False, n_reflectors=None, sigma_min=0.1, sigma_max=1.0, **kwargs):
+        super().__init__(insize, outsize, bias=bias,
+                         n_U_reflectors=n_reflectors, n_V_reflectors=n_reflectors,
+                         sigma_min=sigma_min, sigma_max=sigma_max, **kwargs)
+        self.U = self.V
+
+
 class SymplecticLinear(SquareLinear):
     """
     https://en.wikipedia.org/wiki/Symplectic_matrix
@@ -638,7 +685,8 @@ class SymplecticLinear(SquareLinear):
 
 
 square_maps = {SymmetricLinear, SkewSymmetricLinear, DampedSkewSymmetricLinear, PSDLinear,
-               OrthogonalLinear, SymplecticLinear, SchurDecompositionLinear}
+               OrthogonalLinear, SymplecticLinear, SchurDecompositionLinear, SymmetricSpectralLinear,
+               SymmetricSVDLinear}
 
 maps = {'l0': L0Linear,
         'linear': Linear,
