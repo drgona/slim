@@ -46,6 +46,14 @@ class LinearBase(nn.Module, ABC):
     def reg_error(self):
         return torch.tensor(0.0).to(self.weight.device)
 
+    def eig(self, eigenvectors=False):
+        """
+
+        :param eigenvectors:
+        :return:
+        """
+        return torch.eig(self.effective_W(), eigenvectors=eigenvectors)
+
     @abstractmethod
     def effective_W(self):
         pass
@@ -360,9 +368,6 @@ class SymmetricLinear(SquareLinear):
 
     def effective_W(self):
         return (self.weight + torch.t(self.weight)) / 2
-
-
-
 
 
 class SkewSymmetricLinear(SquareLinear):
@@ -684,9 +689,44 @@ class SymplecticLinear(SquareLinear):
                           torch.cat([-1 * self.weight.T, torch.zeros(self.in_features // 2, self.in_features // 2)], dim=1)])
 
 
+class GershgorinLinear(SquareLinear):
+    """
+
+    """
+    def __init__(self, insize, outsize, bias=False, sigma_min=0.0, sigma_max=1.0, real=True,**kwargs):
+        super().__init__(insize, outsize, bias=bias)
+        self.real = real
+
+        self.mean = (sigma_min + sigma_max)/2.0
+        self.radius = (sigma_min - sigma_max)/2.0
+
+        self.nonident = ~(torch.eye(insize, insize).type(torch.bool))
+        self.w = nn.Parameter(torch.rand(insize, insize))*self.nonident
+        self.diag = torch.randn(insize)
+
+    def effective_W(self):
+        if self.real:
+            # make weights symmetric
+            w = self.w + self.w.T
+        else:
+            w = self.w
+        # Set diagonals to be centered in eigenvalue range with offset bounded (0, .5*radius)
+        eW = torch.diag(self.radius * (torch.sigmoid(self.diag) - 0.5) + self.mean)
+        # Perform softmax on off diagonal elements, then scale so sum is equal to .5 radius
+        w = F.softmax(w[self.nonident], dim=-1).view(self.in_features, self.in_features-1)*(self.radius/2.0)
+        # Get normalized upper triangular elements and put them in effective weights
+        idxs = torch.triu(torch.ones(self.in_features, self.in_features - 1)) == 1
+        uppervec = w[idxs]
+        eW[torch.triu(torch.ones(self.in_features, self.in_features), diagonal=1) == 1] = uppervec
+        # Get normalized lower triangular elements and put them in effective weights
+        lowervec = w[~idxs]
+        eW[torch.tril(torch.ones(self.in_features, self.in_features), diagonal=-1) == 1] = lowervec
+        return eW
+
+
 square_maps = {SymmetricLinear, SkewSymmetricLinear, DampedSkewSymmetricLinear, PSDLinear,
                OrthogonalLinear, SymplecticLinear, SchurDecompositionLinear, SymmetricSpectralLinear,
-               SymmetricSVDLinear}
+               SymmetricSVDLinear, GershgorinLinear}
 
 maps = {'l0': L0Linear,
         'linear': Linear,
@@ -708,7 +748,8 @@ maps = {'l0': L0Linear,
         'symplectic': SymplecticLinear,
         'butterfly': ButterflyLinear,
         'schur': SchurDecompositionLinear,
-        'identity': IdentityLinear}
+        'identity': IdentityLinear,
+        'gershgorin': GershgorinLinear}
 
 
 if __name__ == '__main__':
