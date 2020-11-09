@@ -13,5 +13,14 @@ $ conda env create -f env.yml
 ```console
 $ conda create -n slim python=3.7
 $ conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+$ pip install python-mnist
 ```
 
+## For developers
+
+Continuous documentation integration was set up using the tutorial found here: 
+https://tech.michaelaltfield.net/2020/07/18/sphinx-rtd-github-pages-1/
+
+## Benchmarks
+
+To run the MNIST benchmarks download [MNIST](http://yann.lecun.com/exdb/mnist/) 
