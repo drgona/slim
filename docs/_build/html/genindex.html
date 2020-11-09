@@ -87,6 +87,8 @@
               <p class="caption"><span class="caption-text">Docs:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="linear.html">Linear</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rnn.html">RNN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="benchmarks.html">Benchmarks</a></li>
 </ul>
 
             
@@ -153,7 +155,8 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#B"><strong>B</strong></a>
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
@@ -172,13 +175,33 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
+ | <a href="#X"><strong>X</strong></a>
  
 </div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="benchmarks.html#benchmarks.ackley">ackley() (in module benchmarks)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="benchmarks.html#benchmarks.add">add() (in module benchmarks)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="linear.html#linear.IdentityGradReLU.backward">backward() (linear.IdentityGradReLU static method)</a>
 </li>
+      <li>
+    benchmarks
+
+      <ul>
+        <li><a href="benchmarks.html#module-benchmarks">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="linear.html#linear.SchurDecompositionLinear.build_T">build_T() (linear.SchurDecompositionLinear method)</a>
@@ -280,6 +303,10 @@
 </li>
         <li><a href="linear.html#linear.SpectralLinear.forward">(linear.SpectralLinear method)</a>
 </li>
+        <li><a href="rnn.html#rnn.RNN.forward">(rnn.RNN method)</a>
+</li>
+        <li><a href="rnn.html#rnn.RNNCell.forward">(rnn.RNNCell method)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -287,10 +314,12 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="linear.html#linear.GershgorinLinear">GershgorinLinear (class in linear)</a>
+      <li><a href="benchmarks.html#benchmarks.gen_masked_sequences">gen_masked_sequences() (in module benchmarks)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="linear.html#linear.GershgorinLinear">GershgorinLinear (class in linear)</a>
+</li>
       <li><a href="linear.html#linear.L0Linear.get_eps">get_eps() (linear.L0Linear method)</a>
 </li>
   </ul></td>
@@ -342,6 +371,8 @@
 </li>
       <li><a href="linear.html#linear.LinearBase">LinearBase (class in linear)</a>
 </li>
+      <li><a href="benchmarks.html#benchmarks.load_pMNIST_data">load_pMNIST_data() (in module benchmarks)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -352,9 +383,17 @@
     module
 
       <ul>
+        <li><a href="benchmarks.html#module-benchmarks">benchmarks</a>
+</li>
         <li><a href="linear.html#module-linear">linear</a>
 </li>
+        <li><a href="rnn.html#module-rnn">rnn</a>
+</li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="benchmarks.html#benchmarks.multiply">multiply() (in module benchmarks)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -414,10 +453,25 @@
 </li>
         <li><a href="linear.html#linear.SVDLinear.reg_error">(linear.SVDLinear method)</a>
 </li>
+        <li><a href="rnn.html#rnn.RNN.reg_error">(rnn.RNN method)</a>
+</li>
+        <li><a href="rnn.html#rnn.RNNCell.reg_error">(rnn.RNNCell method)</a>
+</li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="linear.html#linear.RightStochasticLinear">RightStochasticLinear (class in linear)</a>
+</li>
+      <li>
+    rnn
+
+      <ul>
+        <li><a href="rnn.html#module-rnn">module</a>
+</li>
+      </ul></li>
+      <li><a href="rnn.html#rnn.RNN">RNN (class in rnn)</a>
+</li>
+      <li><a href="rnn.html#rnn.RNNCell">RNNCell (class in rnn)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -516,6 +570,10 @@
 </li>
         <li><a href="linear.html#linear.SymplecticLinear.training">(linear.SymplecticLinear attribute)</a>
 </li>
+        <li><a href="rnn.html#rnn.RNN.training">(rnn.RNN attribute)</a>
+</li>
+        <li><a href="rnn.html#rnn.RNNCell.training">(rnn.RNNCell attribute)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -532,6 +590,14 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="linear.html#linear.SpectralLinear.Vmultiply">Vmultiply() (linear.SpectralLinear method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="benchmarks.html#benchmarks.xor">xor() (in module benchmarks)</a>
 </li>
   </ul></td>
 </tr></table>

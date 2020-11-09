@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>benchmarks &mdash; SLiM 0.1 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="../_static/slim.ico"/>
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SLiM
+          
+
+          
+            
+            <img src="../_static/slim.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Docs:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../linear.html">Linear</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rnn.html">RNN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../benchmarks.html">Benchmarks</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SLiM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>benchmarks</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for benchmarks</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot; Various toy problems which are meant to test whether a model can learn</span>
+<span class="sd">long-term dependencies.  Originally proposed in [1]_, with variants used more</span>
+<span class="sd">recently in [2]_, [3]_, [4]_, etc.  In general, we follow the descriptions in</span>
+<span class="sd">[1]_ because they are the most comprehensive; variants of the original tasks</span>
+<span class="sd">have been used instead in the cited papers.</span>
+<span class="sd">.. [1] Sepp Hochreiter and Jürgen Schmidhuber. &quot;Long short-term memory.&quot; Neural</span>
+<span class="sd">computation 9.8 (1997): 1735-1780.</span>
+<span class="sd">.. [2] Ilya Sutskever et al. &quot;On the importance of initialization and momentum</span>
+<span class="sd">in deep learning.&quot; Proceedings of the 30th international conference on machine</span>
+<span class="sd">learning (ICML-13). 2013.</span>
+<span class="sd">.. [3] Herbert Jaegar. &quot;Long Short-Term Memory in Echo State Networks: Details</span>
+<span class="sd">of a Simulation Study.&quot; Jacobs University Technical Report No. 27, 2012.</span>
+<span class="sd">.. [4] James Martens and Ilya Sutskever. &quot;Learning recurrent neural networks</span>
+<span class="sd">with hessian-free optimization.&quot; Proceedings of the 28th International</span>
+<span class="sd">Conference on Machine Learning (ICML-11). 2011.</span>
+<span class="sd">.. [5] Quoc V. Le, Navdeep Jaitly, and Geoffrey E. Hinton. &quot;A Simple Way to</span>
+<span class="sd">Initialize Recurrent Networks of Rectified Linear Units.&quot; arXiv preprint</span>
+<span class="sd">arXiv:1504.00941 (2015).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">mnist</span> <span class="kn">import</span> <span class="n">MNIST</span>
+<span class="kn">import</span> <span class="nn">six.moves.cPickle</span> <span class="k">as</span> <span class="nn">cPickle</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="gen_masked_sequences"><a class="viewcode-back" href="../benchmarks.html#benchmarks.gen_masked_sequences">[docs]</a><span class="k">def</span> <span class="nf">gen_masked_sequences</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+    <span class="c1"># Sample the noise dimension</span>
+    <span class="n">noise_dim</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_sequences</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># Initialize mask dimension to all zeros</span>
+    <span class="n">mask_dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_sequences</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">N_1</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n_sequences</span><span class="p">)</span>
+    <span class="n">N_2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n_sequences</span><span class="p">)</span>
+
+    <span class="c1"># If N_1 = N_2 for any sequences, add 1 to avoid</span>
+    <span class="n">N_2</span><span class="p">[</span><span class="n">N_2</span> <span class="o">==</span> <span class="n">N_1</span><span class="p">]</span> <span class="o">=</span> <span class="n">N_2</span><span class="p">[</span><span class="n">N_2</span> <span class="o">==</span> <span class="n">N_1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="c1"># Set the add indices to 1</span>
+    <span class="n">mask_dim</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_sequences</span><span class="p">),</span> <span class="n">N_1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">mask_dim</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_sequences</span><span class="p">),</span> <span class="n">N_2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># Concatenate noise and mask dimensions to create data</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">noise_dim</span><span class="p">,</span> <span class="n">mask_dim</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="ackley"><a class="viewcode-back" href="../benchmarks.html#benchmarks.ackley">[docs]</a><span class="k">def</span> <span class="nf">ackley</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mf">40.</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">40.</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">nsamples</span><span class="p">,</span> <span class="n">dim</span><span class="p">))</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="o">-</span><span class="p">(</span><span class="mf">20.</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">e</span> <span class="o">-</span> <span class="mf">20.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">j</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="add"><a class="viewcode-back" href="../benchmarks.html#benchmarks.add">[docs]</a><span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">):</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">gen_masked_sequences</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">low</span><span class="o">=</span><span class="mf">0.</span><span class="p">))</span>
+    <span class="c1"># Sum the entries in the third dimension where the second is 1</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="multiply"><a class="viewcode-back" href="../benchmarks.html#benchmarks.multiply">[docs]</a><span class="k">def</span> <span class="nf">multiply</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate sequences and target values for the &quot;multiply&quot; task, as</span>
+<span class="sd">    described in [1]_ section 5.5.  Sequences are two dimensional where the</span>
+<span class="sd">    first dimension are values sampled uniformly at random from [0, 1] and the</span>
+<span class="sd">    second dimension is either -1, 0, or 1: At the first and last steps, it is</span>
+<span class="sd">    -1; at one of the first ten steps (``N_1``) it is 1; and at a step between</span>
+<span class="sd">    0 and ``.5*min_length`` (``N_2``) it is also 1.  The goal is to predict</span>
+<span class="sd">    ``X_1*X_2`` where ``X_1`` and ``X_2`` are the values of the first dimension</span>
+<span class="sd">    at ``N_1`` and ``N_2`` respectively.  For example, the target for the</span>
+<span class="sd">    following sequence</span>
+<span class="sd">    ``| 0.5 | 0.7 | 0.3 | 0.1 | 0.2 | ... | 0.5 | 0.9 | ... | 0.8 | 0.2 |</span>
+<span class="sd">      | -1  |  0  |  1  |  0  |  0  |     |  0  |  1  |     |  0  | -1  |``</span>
+<span class="sd">    would be ``.3*.9 = .27``.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    T : int</span>
+<span class="sd">        Sequence length.</span>
+<span class="sd">    n_sequences : int</span>
+<span class="sd">        Number of sequences to generate.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : np.ndarray</span>
+<span class="sd">        Input to the network, of shape</span>
+<span class="sd">        ``(n_sequences, 1.1*min_length, 2)``, where the last</span>
+<span class="sd">        dimension corresponds to the two sequences described above.</span>
+<span class="sd">    y : np.ndarray</span>
+<span class="sd">        Correct output for each sample, shape ``(n_sequences,)``.</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Sepp Hochreiter and Jürgen Schmidhuber. &quot;Long short-term memory.&quot;</span>
+<span class="sd">    Neural computation 9.8 (1997): 1735-1780.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">gen_masked_sequences</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">low</span><span class="o">=</span><span class="mf">0.</span><span class="p">))</span>
+
+    <span class="c1"># Sum the entries in the third dimension where the second is 1</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">((</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="xor"><a class="viewcode-back" href="../benchmarks.html#benchmarks.xor">[docs]</a><span class="k">def</span> <span class="nf">xor</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generate sequences and target values for the &quot;XOR&quot; task, as</span>
+<span class="sd">    described in [1]_ section 4.1.  Sequences are two dimensional where the</span>
+<span class="sd">    first dimension are binary values sampled uniformly at random from {0, 1}</span>
+<span class="sd">    and the second dimension is either -1, 0, or 1: At the first and last</span>
+<span class="sd">    steps, it is -1; at one of the first ten steps (``N_1``) it is 1; and at a</span>
+<span class="sd">    step between 0 and ``.5*min_length`` (``N_2``) it is also 1.  The goal is</span>
+<span class="sd">    to predict ``X_1^X_2`` where ``X_1`` and ``X_2`` are the values of the</span>
+<span class="sd">    first dimension at ``N_1`` and ``N_2`` respectively.  For example, the</span>
+<span class="sd">    target for the following sequence</span>
+<span class="sd">    ``|  1 | 0 | 1 | 0 | 0 | ... | 1 | 1 | ... | 0 |  0 |</span>
+<span class="sd">      | -1 | 0 | 1 | 0 | 0 |     | 0 | 1 |     | 0 | -1 |``</span>
+<span class="sd">    would be ``1^1 = 0``.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    T : int</span>
+<span class="sd">        Sequence length.</span>
+<span class="sd">    n_sequences : int</span>
+<span class="sd">        Number of sequences to generate.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : np.ndarray</span>
+<span class="sd">        Input to the network, of shape</span>
+<span class="sd">        ``(n_sequences, 1.1*min_length, 2)``, where the last</span>
+<span class="sd">        dimension corresponds to the two sequences described above.</span>
+<span class="sd">    y : np.ndarray</span>
+<span class="sd">        Correct output for each sample, shape ``(n_sequences,)``.</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] James Martens and Ilya Sutskever. &quot;Learning recurrent neural</span>
+<span class="sd">    networks with hessian-free optimization.&quot; Proceedings of the 28th</span>
+<span class="sd">    International Conference on Machine Learning (ICML-11). 2011.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get sequences</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">gen_masked_sequences</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+    <span class="c1"># X[:, :, 1] &gt; 0 constructs a boolean matrix of the rows/columns which have</span>
+    <span class="c1"># a 1 in the last dimension of X.  X[X[:, :, 1] &gt; 0, 0] then masks the</span>
+    <span class="c1"># entries of the random bit dimension accordingly.  The reshape converts</span>
+    <span class="c1"># the resulting array back into a matrix, where entries are picked in</span>
+    <span class="c1"># &quot;fortran&quot; order which allows them to be correctly reshaped to (2,</span>
+    <span class="c1"># n_sequences).  Finally, the * uses the first dimension as the arguments</span>
+    <span class="c1"># to logical_xor</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_xor</span><span class="p">(</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_sequences</span><span class="p">),</span> <span class="s1">&#39;F&#39;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="load_pMNIST_data"><a class="viewcode-back" href="../benchmarks.html#benchmarks.load_pMNIST_data">[docs]</a><span class="k">def</span> <span class="nf">load_pMNIST_data</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">data_path</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">data_path</span> <span class="o">+=</span> <span class="s1">&#39;/MNIST/python-mnist/data/&#39;</span>
+    <span class="n">mndata</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+    <span class="n">tmp_train</span> <span class="o">=</span>  <span class="n">mndata</span><span class="o">.</span><span class="n">load_training</span><span class="p">()</span>
+    <span class="n">tmp_test</span> <span class="o">=</span>  <span class="n">mndata</span><span class="o">.</span><span class="n">load_testing</span><span class="p">()</span>
+    <span class="n">len_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">ind_train</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">len_data</span><span class="p">)[:</span><span class="mi">55000</span><span class="p">]</span>
+    <span class="n">ind_valid</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">len_data</span><span class="p">)[</span><span class="mi">55000</span><span class="p">:]</span>
+    <span class="n">train_set</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="n">ind_train</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_train</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="n">ind_train</span><span class="p">],</span>
+                 <span class="mi">784</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">55000</span><span class="p">)]</span>
+    <span class="n">valid_set</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="n">ind_valid</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_train</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="n">ind_valid</span><span class="p">],</span>
+                 <span class="mi">784</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">5000</span><span class="p">)]</span>
+    <span class="n">test_set</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_test</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmp_test</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="mi">784</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tmp_test</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int32&#39;</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="s1">&#39;prm&#39;</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;prm&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">prm</span> <span class="o">=</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">prm</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="mi">784</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;prm&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">cPickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">prm</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">perm</span><span class="p">:</span>
+        <span class="n">train_set</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="n">prm</span><span class="p">]</span>
+        <span class="n">valid_set</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="n">prm</span><span class="p">]</span>
+        <span class="n">test_set</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="n">prm</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Data loaded.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_set</span><span class="p">,</span> <span class="n">valid_set</span><span class="p">,</span> <span class="n">test_set</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Aaron Tuor, Jan Drgona, Elliott Skomski, Soumya Vasisht
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

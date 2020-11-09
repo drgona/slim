@@ -21,6 +21,7 @@
 .. _Ackley: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.71.2526&rep=rep1&type=pdf
 .. _MNIST: https://ieeexplore.ieee.org/abstract/document/6296535
 
+
 SLiM: Structured Linear Maps
 ============================
 
@@ -81,3 +82,5 @@ Dynamics:
    :caption: Docs:
 
    linear.rst
+   rnn.rst
+   benchmarks.rst

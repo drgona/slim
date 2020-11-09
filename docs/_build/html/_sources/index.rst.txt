@@ -12,6 +12,16 @@
 .. _Symplectic: https://arxiv.org/abs/1705.03341
 .. _AntiSymmetric: https://arxiv.org/abs/1705.03341
 
+.. _`Concentric Ellipses`: https://arxiv.org/pdf/1705.03341.pdf
+.. _`Swiss Roll`: https://arxiv.org/pdf/1705.03341.pdf
+.. _Peaks: https://arxiv.org/pdf/1705.03341.pdf
+.. _Add: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.676.4320&rep=rep1&type=pdf
+.. _Multiply: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.676.4320&rep=rep1&type=pdf
+.. _XOR: https://icml.cc/Conferences/2011/papers/532_icmlpaper.pdf
+.. _Ackley: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.71.2526&rep=rep1&type=pdf
+.. _MNIST: https://ieeexplore.ieee.org/abstract/document/6296535
+
+
 SLiM: Structured Linear Maps
 ============================
 
@@ -40,9 +50,37 @@ This package provides a suite of structured linear maps which can be used as dro
 | AntiSymmetric_                        |:any:`SkewSymmetricLinear`             |
 +---------------------------------------+---------------------------------------+
 
+Benchmarks
+----------
+Sequence to Classification:
+
+- MNIST_
+- XOR_
+
+Point to Classification:
+
+- `Concentric Ellipses`_
+- `Swiss Roll`_
+- Peaks_
+
+Sequence to Regression:
+
+- Add_
+- Multiply_
+
+Point to Regression:
+
+- Ackley_
+
+Dynamics:
+
+- Building models
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Docs:
 
    linear.rst
+   rnn.rst
+   benchmarks.rst
