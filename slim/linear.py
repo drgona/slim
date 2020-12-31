@@ -391,13 +391,13 @@ class DampedSkewSymmetricLinear(SkewSymmetricLinear):
     https://en.wikipedia.org/wiki/Skew-symmetric_matrix
     """
 
-    def __init__(self, insize, outsize, bias=False, **kwargs):
+    def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=0.5, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.eye = nn.Parameter(torch.eye(insize, outsize), requires_grad=False)
-        self.gamma = nn.Parameter(0.01 * torch.randn(1, 1))
+        self.gamma = nn.Parameter(sigma_min + (sigma_max-sigma_min) * torch.rand(1, 1))
 
     def effective_W(self):
-        return super().effective_W() - self.gamma * self.gamma * self.eye
+        return super().effective_W() + self.gamma * self.eye
 
 
 class SplitLinear(LinearBase):
