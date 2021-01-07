@@ -2,6 +2,7 @@ import torch
 import slim
 
 sparse_maps = [
+    slim.L0Linear,
     slim.LassoLinear,
     slim.LassoLinearRELU,
     slim.ButterflyLinear,
@@ -15,7 +16,7 @@ spectral_maps = [
 ]
 
 loss_fn = torch.nn.functional.mse_loss
-
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 class SparseModel(slim.LinearBase):
     def __init__(self, input_dim=64, output_dim=64, sparsity=0.75):
@@ -42,7 +43,7 @@ def generate_data(true_model, nsamples=20000, batch_size=2000):
     X, y = [], []
     for _ in range(0, nsamples, batch_size):
         with torch.no_grad():
-            X_batch = torch.rand(batch_size, input_dim)
+            X_batch = torch.rand(batch_size, input_dim, device=device)
             y_batch = true_model(X_batch)
         X += [X_batch]
         y += [y_batch]
@@ -50,7 +51,8 @@ def generate_data(true_model, nsamples=20000, batch_size=2000):
     return torch.cat(X, dim=0), torch.cat(y, dim=0)
 
 
-def train(X_true, y_true, model, optimizer, epochs=500, batch_size=2000):
+def train(X_true, y_true, model, optimizer, epochs=2000, batch_size=2000):
+    model.train()
     nsamples = X_true.shape[0]
     for epoch in range(epochs):
         rand_inds = torch.randperm(nsamples)
@@ -74,6 +76,7 @@ def train(X_true, y_true, model, optimizer, epochs=500, batch_size=2000):
 
 
 def evaluate(X_true, y_true, model, batch_size=2000):
+    model.eval()
     nsamples = X_true.shape[0]
     loss_acc = 0.
 
@@ -94,9 +97,8 @@ def test_maps(maps, true_model):
     for layer in [*maps, slim.Linear]:
         print(f'  {layer.__name__}:')
 
-        test_model = layer(64, 64)
+        test_model = layer(64, 64).to(device)
         optimizer = torch.optim.AdamW(test_model.parameters(), lr=0.001)
-
         train(X, y, test_model, optimizer)
         loss = evaluate(X, y, test_model)
         wdiv = weight_divergence(true_model, test_model)
@@ -105,8 +107,7 @@ def test_maps(maps, true_model):
 
 if __name__ == '__main__':
     print('Testing sparse linear maps:')
-    test_maps(sparse_maps, SparseModel())
+    test_maps(sparse_maps, SparseModel().to(device))
 
     print('Testing spectrally-constrained linear maps:')
-    test_maps(spectral_maps, SpectralModel())
-
+    test_maps(spectral_maps, SpectralModel().to(device))

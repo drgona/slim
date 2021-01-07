@@ -86,6 +86,7 @@ class L0Linear(LinearBase):
         super().__init__(insize, outsize, bias=bias)
         self.in_features = insize
         self.out_features = outsize
+        self.use_bias = bias
         self.prior_prec = weight_decay
         self.qz_loga = nn.Parameter(torch.Tensor(insize, outsize))
         self.temperature = temperature
@@ -108,7 +109,7 @@ class L0Linear(LinearBase):
 
     def reg_error(self):
         """Expected L0 norm under the stochastic gates, takes into account and re-weights also a potential L2 penalty"""
-        logpw_col = torch.sum(- (.5 * self.prior_prec * self.weights.pow(2)) - self.lamba, 1)
+        logpw_col = torch.sum(- (.5 * self.prior_prec * self.weight.pow(2)) - self.lamba, 1)
         logpw = torch.sum((1 - self.cdf_qz(0)) * logpw_col)
         logpb = 0 if not self.use_bias else - torch.sum(.5 * self.prior_prec * self.bias.pow(2))
         return logpw + logpb
