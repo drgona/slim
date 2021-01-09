@@ -1,3 +1,5 @@
+![icon](docs/_static/slim.png)
+
 # SLiM: Structured Linear Maps
 
 Drop in replacements for pytorch nn.Linear for stable learning and inductive priors 
