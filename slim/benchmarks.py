@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-""" Various toy problems which are meant to test whether a model can learn
-long-term dependencies.  Originally proposed in [1]_, with variants used more
-recently in [2]_, [3]_, [4]_, etc.  In general, we follow the descriptions in
-[1]_ because they are the most comprehensive; variants of the original tasks
-have been used instead in the cited papers.
+"""
+Several toy problems adapted from:
+
++ https://github.com/zmhammedi/Orthogonal_RNN/blob/master/toy_problems.py
+
 .. [1] Sepp Hochreiter and Jürgen Schmidhuber. "Long short-term memory." Neural
 computation 9.8 (1997): 1735-1780.
 .. [2] Ilya Sutskever et al. "On the importance of initialization and momentum
@@ -17,6 +16,13 @@ Conference on Machine Learning (ICML-11). 2011.
 .. [5] Quoc V. Le, Navdeep Jaitly, and Geoffrey E. Hinton. "A Simple Way to
 Initialize Recurrent Networks of Rectified Linear Units." arXiv preprint
 arXiv:1504.00941 (2015).
+
+Various toy problems which are meant to test whether a model can learn
+long-term dependencies.  Originally proposed in [1]_, with variants used more
+recently in [2]_, [3]_, [4]_, etc.  In general, we follow the descriptions in
+[1]_ because they are the most comprehensive; variants of the original tasks
+have been used instead in the cited papers.
+
 """
 import numpy as np
 import functools

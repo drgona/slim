@@ -1,23 +1,29 @@
 """
-
-# TODO: Confirm sparse parametrizations
-
-# Additional linear parametrizations
-# Strictly diagonally dominant matrix is non-singular: https://en.wikipedia.org/wiki/Diagonally_dominant_matrix
-# Doubly stochastic matrix: https://en.wikipedia.org/wiki/Doubly_stochastic_matrix
-#                           https://github.com/btaba/sinkhorn_knopp
-#                           https://github.com/HeddaCohenIndelman/Learning-Gumbel-Sinkhorn-Permutations-w-Pytorch
-# Hamiltonian matrix: https://en.wikipedia.org/wiki/Hamiltonian_matrix
-# Regular split: A = B − C is a regular splitting of A if B^−1 ≥ 0 and C ≥ 0:
-#                https://en.wikipedia.org/wiki/Matrix_splitting
+Structured linear maps which are drop in replacements for torch.nn.Linear
 
 
-Pytorch weight initializations
+.. todo::
 
-torch.nn.init.xavier_normal_(tensor, gain=1.0)
-torch.nn.init.kaiming_normal_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu')
-torch.nn.init.orthogonal_(tensor, gain=1)
-torch.nn.init.sparse_(tensor, sparsity, std=0.01)
+    + Generalize to batch matrix multiplication for arbitrary N-dimensional tensors
+    + Additional linear parametrizations:
+
+        - Strictly diagonally dominant matrix is non-singular:
+            + https://en.wikipedia.org/wiki/Diagonally_dominant_matrix
+        - Doubly stochastic matrix:
+            + https://en.wikipedia.org/wiki/Doubly_stochastic_matrix
+            + https://github.com/btaba/sinkhorn_knopp
+            + https://github.com/HeddaCohenIndelman/Learning-Gumbel-Sinkhorn-Permutations-w-Pytorch
+        - Hamiltonian matrix:
+            + https://en.wikipedia.org/wiki/Hamiltonian_matrix
+        - Regular split: :math:`A = B − C` is a regular splitting of :math:`A` if :math:`B^{−1} ≥ 0` and :math:`C ≥ 0`:
+            + https://en.wikipedia.org/wiki/Matrix_splitting
+
+Pytorch weight initializations used in this module:
+
++ torch.nn.init.xavier_normal_(tensor, gain=1.0)
++ torch.nn.init.kaiming_normal_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu')
++ torch.nn.init.orthogonal_(tensor, gain=1)
++ torch.nn.init.sparse_(tensor, sparsity, std=0.01)
 """
 
 from abc import ABC, abstractmethod
@@ -30,9 +36,16 @@ from slim.butterfly import Butterfly
 
 class LinearBase(nn.Module, ABC):
     """
+    Base class defining linear map interface.
     """
 
     def __init__(self, insize, outsize, bias=False):
+        """
+
+        :param insize: (int) Input dimensionality
+        :param outsize: (int) Output dimensionality
+        :param bias: (bool) Whether to use affine or linear map
+        """
         super().__init__()
         self.in_features, self.out_features = insize, outsize
         self.weight = nn.Parameter(torch.Tensor(insize, outsize))
@@ -44,40 +57,59 @@ class LinearBase(nn.Module, ABC):
             torch.nn.init.uniform_(self.bias, -bound, bound)
 
     def reg_error(self):
+        """
+        Regularization error associated with linear map parametrization.
+
+        :return: (torch.float)
+
+        """
         return torch.tensor(0.0).to(self.weight.device)
 
     def eig(self, eigenvectors=False):
         """
+        Returns the eigenvalues (optionally eigenvectors) of the linear map used in matrix multiplication.
 
-        :param eigenvectors:
-        :return:
+        :param eigenvectors: (bool) Whether to return eigenvectors along with eigenvalues.
+        :return: (torch.Tensor) Vector of eigenvalues, optionally a tuple including a matrix of eigenvectors.
         """
         return torch.eig(self.effective_W(), eigenvectors=eigenvectors)
 
     @abstractmethod
     def effective_W(self):
+        """
+        The matrix used in the equivalent matrix multiplication for the parametrization
+
+        :return: (torch.Tensor, shape=[insize, outsize]) Matrix used in matrix multiply
+
+        """
         pass
 
     def forward(self, x):
+        """
+
+        :param x: (torch.Tensor, shape=[batchsize, in_features])
+        :return: (torch.Tensor, shape=[batchsize, out_features])
+        """
         return torch.matmul(x, self.effective_W()) + self.bias
 
 
 class L0Linear(LinearBase):
     """
-    TODO: This implementation may need to be adjusted as there is the same sampling for each input
-    TODO: in the minibatch which may inhibit convergence. Also, there will be a different sampling
-    TODO: for each call during training so it may cause issues included in a layer for a recurrent
-    TODO: computation (fx in state space model). Or maybe neither are issues. Need to try first.
     Implementation of L0 regularization for the input units of a fully connected layer
-    Reference implementation: https://github.com/AMLab-Amsterdam/L0_regularization/blob/master/l0_layers.py
-    Paper: https://arxiv.org/pdf/1712.01312.pdf
+
+    + Reference implementation: https://github.com/AMLab-Amsterdam/L0_regularization/blob/master/l0_layers.py
+    + Paper: https://arxiv.org/pdf/1712.01312.pdf
+
+    .. note::
+        This implementation may need to be adjusted as there is the same sampling for each input
+        in the minibatch which may inhibit convergence. Also, there will be a different sampling
+        for each call during training so it may cause issues included in a layer for a recurrent
+        computation (fx in state space model).
+
     """
     def __init__(self, insize, outsize, bias=True, weight_decay=1.0,
-                 droprate_init=0.5, temperature=2./3., lamba=1.0, **kwargs):
+                 droprate_init=0.5, temperature=2./3., lamba=1.0):
         """
-        :param insize: Input dimensionality
-        :param outsize: Output dimensionality
-        :param bias: Whether we use a bias
         :param weight_decay: Strength of the L2 penalty
         :param droprate_init: Dropout rate that the L0 gates will be initialized to
         :param temperature: Temperature of the concrete distribution
@@ -150,6 +182,7 @@ class ButterflyLinear(LinearBase):
 
 class SquareLinear(LinearBase, ABC):
     """
+    Base class for linear map parametrizations that assume a square matrix.
     """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         assert insize == outsize, f'Map must be square. insize={insize} and outsize={outsize}'
@@ -161,6 +194,10 @@ class SquareLinear(LinearBase, ABC):
 
 
 class Linear(LinearBase):
+    """
+    Wrapper for torch.nn.Linear with additional slim methods returning matrix,
+    eigenvectors, eigenvalues and regularization error.
+    """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.linear = nn.Linear(insize, outsize, bias=bias)
@@ -173,7 +210,9 @@ class Linear(LinearBase):
 
 
 class IdentityInitLinear(Linear):
-
+    """
+    Linear map initialized to Identity matrix.
+    """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.linear = nn.Linear(insize, outsize, bias=bias)
@@ -183,12 +222,18 @@ class IdentityInitLinear(Linear):
 
 
 class IdentityLinear(IdentityInitLinear):
+    """
+    Identity operation compatible with all LinearBase functionality.
+    """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.linear.requires_grad_(False)
 
 
 class NonNegativeLinear(LinearBase):
+    """
+    Positive parametrization of linear map via Relu.
+    """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.weight = nn.Parameter(torch.abs(self.weight)*0.1)
@@ -232,7 +277,7 @@ class IdentityGradReLU(torch.autograd.Function):
         In the backward pass we receive a Tensor containing the gradient of the loss
         with respect to the output, and we need to compute the gradient of the loss
         with respect to the input. Here we are just passing through the previous gradient since we want
-        the gradient for this max operation to be identity in order to implement mythical SGD Lasso from Bottou.
+        the gradient for this max operation to be gradient of identity.
         """
         return grad_output
 
@@ -293,7 +338,8 @@ class LassoLinear(LinearBase):
 class RightStochasticLinear(LinearBase):
     """
     A right stochastic matrix is a real square matrix, with each row summing to 1.
-    https://en.wikipedia.org/wiki/Stochastic_matrix
+
+    + https://en.wikipedia.org/wiki/Stochastic_matrix
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -306,7 +352,8 @@ class RightStochasticLinear(LinearBase):
 class LeftStochasticLinear(LinearBase):
     """
     A left stochastic matrix is a real square matrix, with each column summing to 1.
-    https://en.wikipedia.org/wiki/Stochastic_matrix
+
+    + https://en.wikipedia.org/wiki/Stochastic_matrix
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -320,9 +367,9 @@ class PerronFrobeniusLinear(LinearBase):
 
     def __init__(self, insize, outsize, bias=False, sigma_min=0.8, sigma_max=1.0, **kwargs):
         """
-        Perron-Frobenius theorem based regularization of matrix
+        Perron-Frobenius theorem based regularization of matrix rows sum to in between sigma_min and sigma max.
 
-        rows sum to in between sigma_min and sigma max
+        + See https://arxiv.org/abs/2004.10883 for extensive description.
 
         :param insize: (int) Dimension of input vectors
         :param outsize: (int) Dimension of output vectors
@@ -344,23 +391,9 @@ class PerronFrobeniusLinear(LinearBase):
 
 class SymmetricLinear(SquareLinear):
     """
-    symmetric matrix A (effective_W) is a square matrix that is equal to its transpose.
-    A = A^T
-    https://en.wikipedia.org/wiki/Symmetric_matrix
-    """
+    Symmetric matrix :math:`A` (effective_W) is a square matrix that is equal to its transpose. :math:`A = A^T`
 
-    def __init__(self, insize, outsize, bias=False, **kwargs):
-        super().__init__(insize, outsize, bias=bias)
-
-    def effective_W(self):
-        return (self.weight + torch.t(self.weight)) / 2
-
-
-class SymmetricLinear(SquareLinear):
-    """
-    symmetric matrix A (effective_W) is a square matrix that is equal to its transpose.
-    A = A^T
-    https://en.wikipedia.org/wiki/Symmetric_matrix
+    + https://en.wikipedia.org/wiki/Symmetric_matrix
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -372,9 +405,10 @@ class SymmetricLinear(SquareLinear):
 
 class SkewSymmetricLinear(SquareLinear):
     """
-    skew-symmetric (or antisymmetric) matrix A (effective_W) is a square matrix whose transpose equals its negative.
-    A = -A^T
-    https://en.wikipedia.org/wiki/Skew-symmetric_matrix
+    Skew-symmetric (or antisymmetric) matrix :math:`A` (effective_W) is a square matrix whose transpose equals its negative.
+    :math:`A = -A^T`
+
+    + https://en.wikipedia.org/wiki/Skew-symmetric_matrix
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -386,9 +420,9 @@ class SkewSymmetricLinear(SquareLinear):
 
 class DampedSkewSymmetricLinear(SkewSymmetricLinear):
     """
-    skew-symmetric (or antisymmetric) matrix A (effective_W) is a square matrix whose transpose equals its negative.
-    A = -A^T
-    https://en.wikipedia.org/wiki/Skew-symmetric_matrix
+    Skew-symmetric linear map with damping.
+
+    + https://en.wikipedia.org/wiki/Skew-symmetric_matrix
     """
 
     def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=0.5, **kwargs):
@@ -402,8 +436,9 @@ class DampedSkewSymmetricLinear(SkewSymmetricLinear):
 
 class SplitLinear(LinearBase):
     """
-    A = B − C, with B ≥ 0 and C ≥ 0.
-    https://en.wikipedia.org/wiki/Matrix_splitting
+    :math:`A = B − C`, with :math:`B ≥ 0` and :math:`C ≥ 0`.
+
+    + https://en.wikipedia.org/wiki/Matrix_splitting
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -418,8 +453,9 @@ class SplitLinear(LinearBase):
 
 class StableSplitLinear(LinearBase):
     """
-    A = B − C, with stable B and stable C
-    https://en.wikipedia.org/wiki/Matrix_splitting
+    :math:`A = B − C`, with stable `B` and stable `C`
+
+    + https://en.wikipedia.org/wiki/Matrix_splitting
     """
 
     def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
@@ -434,23 +470,27 @@ class StableSplitLinear(LinearBase):
 
 class SVDLinear(LinearBase):
     """
-    This paper uses the same factorization and orthogonality constraint but enforces a low rank prior on the map
-    by introducing a sparse prior on the singular values:
-    https://openaccess.thecvf.com/content_CVPRW_2020/papers/w40/Yang_Learning_Low-Rank_Deep_Neural_Networks_via_Singular_Vector_Orthogonality_Regularization_CVPRW_2020_paper.pdf
-    Also a similar regularization on the factors:
-    https://pdfs.semanticscholar.org/78b2/9eba4d6c836483c0aa67d637205e95223ae4.pdf
+    Linear map with constrained eigenvalues via approximate SVD factorization.
+    Soft SVD based regularization of matrix :math:`A`.
+    :math:`A = U \Sigma V`.
+    :math:`U,V` are unitary matrices (orthogonal for real matrices :math:`A`).
+    :math:`\Sigma` is a diagonal matrix of singular values (square roots of eigenvalues).
+
+    + https://arxiv.org/abs/2101.01864
+
+    This below paper uses the same factorization and orthogonality constraint as implemented here
+    but enforces a low rank prior on the map by introducing a sparse prior on the singular values:
+
+    + https://openaccess.thecvf.com/content_CVPRW_2020/papers/w40/Yang_Learning_Low-Rank_Deep_Neural_Networks_via_Singular_Vector_Orthogonality_Regularization_CVPRW_2020_paper.pdf
+
+    Also a similar regularization on the factors as to our implementation:
+
+    + https://pdfs.semanticscholar.org/78b2/9eba4d6c836483c0aa67d637205e95223ae4.pdf
     """
     def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
         """
-
-        soft SVD based regularization of matrix A
-        A = U*Sigma*V
-        U,V = unitary matrices (orthogonal for real matrices A)
-        Sigma = diagonal matrix of singular values (square roots of eigenvalues)
-        nu = number of columns
-        nx = number of rows
-        sigma_min = minimum allowed value of  eigenvalues
-        sigma_max = maximum allowed value of eigenvalues
+        :param sigma_min: (int) Minimum singular value.
+        :param sigma_max: (int) Maximum singular value.
         """
         super().__init__(insize, outsize, bias=bias)
         u = torch.empty(insize, insize)
@@ -471,6 +511,9 @@ class SVDLinear(LinearBase):
                                       torch.mm(torch.t(weight), weight), 2), 2)
 
     def reg_error(self):
+        """
+        Regularization error enforces orthogonality constraint for matrix factors
+        """
         return self.orthogonal_error(self.U) + self.orthogonal_error(self.V)
 
     def effective_W(self):
@@ -487,15 +530,7 @@ class SVDLinear(LinearBase):
 class SVDLinearLearnBounds(SVDLinear):
     def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
         """
-
-        soft SVD based regularization of matrix A
-        A = U*Sigma*V
-        U,V = unitary matrices (orthogonal for real matrices A)
-        Sigma = diagonal matrix of singular values (square roots of eigenvalues)
-        nu = number of columns
-        nx = number of rows
-        sigma_min = minimum allowed value of  eigenvalues
-        sigma_max = maximum allowed value of eigenvalues
+        Parametrizes bounds on singular value which are learned with other parameters via gradient descent.
         """
         super().__init__(insize, outsize, bias=bias, sigma_min=sigma_min, sigma_max=sigma_max)
         self.sigma_min = nn.Parameter(torch.tensor(sigma_min))
@@ -503,29 +538,21 @@ class SVDLinearLearnBounds(SVDLinear):
 
 
 class SymmetricSVDLinear(SVDLinear):
+    """
+    :math:`U = V`
+    """
     def __init__(self, insize, outsize, bias=False, sigma_min=0.1, sigma_max=1.0, **kwargs):
-        """
-
-        soft SVD based regularization of matrix A
-        A = U*Sigma*V
-        U,V = unitary matrices (orthogonal for real matrices A)
-        Sigma = diagonal matrix of singular values (square roots of eigenvalues)
-        nu = number of columns
-        nx = number of rows
-        sigma_min = minimum allowed value of  eigenvalues
-        sigma_max = maximum allowed value of eigenvalues
-        """
         super().__init__(insize, outsize, bias=bias, sigma_min=sigma_min, sigma_max=sigma_max)
         self.U = self.V
 
 
 def Hprod(x, u, k):
     """
-
-    :param x: bs X dim
-    :param u: dim
-    :param k: int
-    :return: bs X dim
+    Helper function for computing matrix multiply via householder reflection representation.
+    :param x: (torch.Tensor shape=[batchsize, dimension])
+    :param u: (torch.Tensor shape=[dimension])
+    :param k: (int)
+    :return: (torch.Tensor shape=[batchsize, dimension])
     """
     alpha = 2 * torch.matmul(x[:, -k:], u[-k:]) / (u[-k:] * u[-k:]).sum()
     if k < x.shape[1]:
@@ -536,7 +563,11 @@ def Hprod(x, u, k):
 
 
 class OrthogonalLinear(SquareLinear):
+    """
+    Orthogonal parametrization via householder reflection
 
+    + https://arxiv.org/abs/1612.00188
+    """
     def __init__(self, insize, outsize, bias=False, **kwargs):
         super().__init__(insize, outsize, bias=bias)
         self.U = nn.Parameter(torch.triu(torch.randn(insize, insize)))
@@ -545,11 +576,6 @@ class OrthogonalLinear(SquareLinear):
         return self.forward(torch.eye(self.in_features).to(self.U.device))
 
     def forward(self, x):
-        """
-
-        :param x: BS X dim
-        :return: BS X dim
-        """
         for i in range(0, self.in_features):
             x = Hprod(x, self.U[i], self.in_features - i)
         return x + self.bias
@@ -557,7 +583,7 @@ class OrthogonalLinear(SquareLinear):
 
 class SchurDecompositionLinear(SquareLinear):
     """
-    https://papers.nips.cc/paper/9513-non-normal-recurrent-neural-network-nnrnn-learning-long-time-dependencies-while-improving-expressivity-with-transient-dynamics.pdf
+    + https://papers.nips.cc/paper/9513-non-normal-recurrent-neural-network-nnrnn-learning-long-time-dependencies-while-improving-expressivity-with-transient-dynamics.pdf
     """
     def __init__(self, insize, outsize, bias=False, l2=1e-2, **kwargs):
         super().__init__(insize, outsize, bias=bias)
@@ -584,8 +610,11 @@ class SchurDecompositionLinear(SquareLinear):
 
 class SpectralLinear(LinearBase):
     """
-    Translated from tensorflow code: https://github.com/zhangjiong724/spectral-RNN/blob/master/code/spectral_rnn.py
-    SVD paramaterized linear map of form U\SigmaV. Singular values can be constrained to a range
+    SVD paramaterized linear map of form :math:`U \Sigma V` via Householder reflection.
+    Singular values can be constrained to a range.
+    Translated from tensorflow code:
+
+    + https://github.com/zhangjiong724/spectral-RNN/blob/master/code/spectral_rnn.py
     """
 
     def __init__(self, insize, outsize, bias=False,
@@ -593,13 +622,10 @@ class SpectralLinear(LinearBase):
                  sigma_min=0.1, sigma_max=1.0, **kwargs):
         """
 
-        :param insize: (int) Dimension of input vectors
-        :param outsize: (int) Dimension of output vectors
         :param n_U_reflectors: (int) It looks like this should effectively constrain the rank of the matrix
         :param n_V_reflectors: (int) It looks like this should effectively constrain the rank of the matrix
-        :param bias: (bool) whether to add a bias term.
-        :param sig_min: min value of singular values
-        :param sig_max: max value of singular values
+        :param sigma_min: min value of singular values
+        :param sigma_max: max value of singular values
         """
         super().__init__(insize, outsize, bias=bias)
         if n_U_reflectors is not None and n_U_reflectors is not None:
@@ -622,21 +648,12 @@ class SpectralLinear(LinearBase):
         return square_matrix[:self.in_features, :self.out_features]
 
     def Umultiply(self, x):
-        """
-
-        :param x: BS X
-        :return: BS X dim
-        """
         assert x.shape[1] == self.in_features, f'x.shape: {x.shape}, in_features: {self.in_features}'
         for i in range(0, self.n_U_reflectors):
             x = Hprod(x, self.U[i], self.in_features - i)
         return x
 
     def Vmultiply(self, x):
-        """
-        :param x: bs X dim
-        :return:
-        """
         assert x.shape[1] == self.out_features
         for i in range(self.n_V_reflectors - 1, -1, -1):
             x = Hprod(x, self.V[i], self.out_features - i)
@@ -646,12 +663,6 @@ class SpectralLinear(LinearBase):
         return self.forward(torch.eye(self.in_features).to(self.p.device))
 
     def forward(self, x):
-        """
-        args: a list of 2D, batch x n, Tensors.
-
-        :param args:
-        :return:
-        """
         x = self.Umultiply(x)
         x = torch.matmul(x, self.Sigma())
         x = self.Vmultiply(x)
@@ -660,8 +671,7 @@ class SpectralLinear(LinearBase):
 
 class SymmetricSpectralLinear(SpectralLinear):
     """
-    Translated from tensorflow code: https://github.com/zhangjiong724/spectral-RNN/blob/master/code/spectral_rnn.py
-    SVD paramaterized linear map of form U\SigmaV. Singular values can be constrained to a range
+    :math:`U = V`
     """
 
     def __init__(self, insize, outsize, bias=False, n_reflectors=None, sigma_min=0.1, sigma_max=1.0, **kwargs):
@@ -673,8 +683,8 @@ class SymmetricSpectralLinear(SpectralLinear):
 
 class SymplecticLinear(SquareLinear):
     """
-    https://en.wikipedia.org/wiki/Symplectic_matrix
-    https://arxiv.org/abs/1705.03341
+    + https://en.wikipedia.org/wiki/Symplectic_matrix
+    + https://arxiv.org/abs/1705.03341
     """
 
     def __init__(self, insize, outsize, bias=False, **kwargs):
@@ -691,7 +701,9 @@ class SymplecticLinear(SquareLinear):
 
 class GershgorinLinear(SquareLinear):
     """
+    Uses Gershgorin Disc parametrization to constrain eigenvalues of the matrix. See:
 
+    + https://arxiv.org/abs/2011.13492
     """
     def __init__(self, insize, outsize, bias=False, sigma_min=0.0, sigma_max=1.0, real=True,**kwargs):
         super().__init__(insize, outsize, bias=bias)
@@ -781,6 +793,7 @@ if __name__ == '__main__':
         assert (x.shape[0], x.shape[1]) == (8, 8)
         x = map(long)
         assert (x.shape[0], x.shape[1]) == (3, 8)
+
 
 
 

@@ -65,3 +65,4 @@ html_static_path = ['_static']
 html_logo = '_static/slim.png'
 
 html_favicon = '_static/slim.ico'
+todo_include_todos=True
