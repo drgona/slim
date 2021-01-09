@@ -3,6 +3,8 @@
 Drop in replacements for pytorch nn.Linear for stable learning and inductive priors 
 in physics informed machine learning applications.
 
+## [Complete documentation](https://pnnl.github.io/slim/)
+
 ## install dependencies via .yml
 ```console
 $ conda env create -f env.yml
