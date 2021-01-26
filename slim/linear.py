@@ -142,7 +142,7 @@ class L0Linear(LinearBase):
     def reg_error(self):
         """Expected L0 norm under the stochastic gates, takes into account and re-weights also a potential L2 penalty"""
         logpw_col = torch.sum(- (.5 * self.prior_prec * self.weight.pow(2)) - self.lamba, 1)
-        logpw = torch.sum((1 - self.cdf_qz(0)) * logpw_col)
+        logpw = torch.sum((1 - self.cdf_qz(0)) * logpw_col.unsqueeze(1))
         logpb = 0 if not self.use_bias else - torch.sum(.5 * self.prior_prec * self.bias.pow(2))
         return logpw + logpb
 
@@ -781,6 +781,7 @@ if __name__ == '__main__':
     for linear in set(list(maps.values())) - square_maps:
         print(linear)
         map = linear(3, 5)
+        print(map.reg_error())
         x = map(tall)
         assert (x.shape[0], x.shape[1]) == (8, 5)
         map = linear(8, 3)
